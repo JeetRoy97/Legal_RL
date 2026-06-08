@@ -186,11 +186,3 @@ Experiments reported in the paper were conducted using:
 All major hyperparameters are provided in the corresponding training scripts.
 
 ---
-
-## Citation
-
-If you use this repository in your research, please cite:
-
-bibtex @inproceedings{anonymous2026tanha,   title={Entity-Guided Reinforcement Learning for Factual Legal Summarization},   author={Anonymous},   year={2026} } 
-
-The citation will be updated after publication.
