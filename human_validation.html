@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Human Evaluation CSV Uploader</title>
+<style>
+:root { --bg:#f7f7f4; --panel:#ffffff; --ink:#222222; --muted:#62625d; --line:#d8d7d0; --gold:#fff8df; --pred:#eef7ff; --accent:#0f766e; --accent2:#134e4a; --warn:#fff1f0; --warnline:#f4b4ab; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+header { position:sticky; top:0; z-index:5; background:#fffffff4; border-bottom:1px solid var(--line); padding:12px 22px; backdrop-filter:blur(8px); }
+.header-row { display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center; }
+h1 { margin:0; font-size:20px; line-height:1.2; }
+.meta,.progress,.status,.hint { color:var(--muted); }
+.meta,.progress { font-size:13px; margin-top:4px; }
+.actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+button, select, input { border-radius:6px; padding:9px 12px; font:inherit; }
+button { border:1px solid #0b5f58; background:var(--accent); color:white; font-weight:700; cursor:pointer; }
+button.secondary { background:white; color:var(--ink); border-color:var(--line); }
+button:disabled { opacity:.5; cursor:not-allowed; }
+select, input { border:1px solid var(--line); background:white; }
+main { max-width:1500px; margin:0 auto; padding:14px 22px 48px; }
+.guide { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+.guide section,.upload { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+.guide h2,.upload h2 { margin:0 0 4px; font-size:14px; }
+.guide p,.upload p { margin:0; color:var(--muted); font-size:13px; }
+.upload { margin-bottom:12px; }
+.upload-grid { display:grid; grid-template-columns:1.2fr 1fr 1fr 1fr auto; gap:8px; align-items:end; margin-top:10px; }
+.field label { display:block; font-weight:750; font-size:13px; margin-bottom:4px; }
+.field input,.field select { width:100%; }
+.warning { background:var(--warn); border:1px solid var(--warnline); border-radius:8px; padding:9px 12px; color:#8a241a; font-weight:700; margin-bottom:12px; }
+.item { background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; box-shadow:0 1px 2px #0000000c; margin-bottom:14px; }
+.item.hidden { display:none; }
+.item-head { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:11px 14px; border-bottom:1px solid var(--line); background:#fbfbf8; }
+.item-title { font-size:17px; font-weight:800; }
+.done-check { display:flex; align-items:center; gap:7px; font-weight:700; color:var(--accent2); }
+.eval { display:grid; grid-template-columns:1fr 1fr 1fr minmax(300px,1.25fr); gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); background:#ffffff; }
+.metric > label { display:block; font-weight:800; margin-bottom:6px; }
+.score-row { display:grid; grid-template-columns:repeat(6,1fr); gap:4px; }
+.score-row input { position:absolute; opacity:0; pointer-events:none; }
+.score-row span { display:block; text-align:center; border:1px solid var(--line); border-radius:5px; padding:7px 0; background:white; cursor:pointer; font-weight:800; }
+.score-row input:checked + span { background:var(--accent); border-color:var(--accent); color:white; }
+.hint { margin-top:5px; font-size:12px; }
+textarea { width:100%; min-height:74px; resize:vertical; border:1px solid var(--line); border-radius:6px; padding:8px; font:inherit; }
+.compare { display:grid; grid-template-columns:1fr 1fr; min-height:0; }
+.textbox { height:320px; min-height:260px; overflow:auto; padding:0 15px 16px; white-space:pre-wrap; font-size:14px; line-height:1.62; }
+.textbox h3 { position:sticky; top:0; margin:0 -15px 12px; padding:10px 15px; font-size:14px; border-bottom:1px solid var(--line); background:inherit; z-index:1; }
+.gold { background:var(--gold); border-right:1px solid var(--line); }
+.pred { background:var(--pred); }
+.footer-nav { display:flex; justify-content:space-between; gap:10px; margin-top:12px; }
+#items:empty::before { content:"Upload a CSV to begin."; display:block; color:var(--muted); padding:28px; text-align:center; border:1px dashed var(--line); border-radius:8px; background:#fff; }
+@media (max-width:1050px) { .header-row,.guide,.eval,.compare,.upload-grid { grid-template-columns:1fr; } .actions { justify-content:flex-start; } .gold { border-right:0; border-bottom:1px solid var(--line); } .textbox { height:auto; max-height:520px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-row">
+    <div>
+      <h1>Human Evaluation CSV Uploader</h1>
+      <div class="meta">Upload a CSV with gold and prediction columns. Review three samples at a time, then export scores with the text included.</div>
+      <div class="progress" id="progress">No dataset loaded.</div>
+    </div>
+    <div class="actions">
+      <select id="datasetSelect" aria-label="Dataset"></select>
+      <select id="jumpSelect" aria-label="Jump to item"></select>
+      <button class="secondary" id="prevBtn" type="button" disabled>Previous</button>
+      <button class="secondary" id="nextBtn" type="button" disabled>Next</button>
+      <button class="secondary" id="clearBtn" type="button" disabled>Clear Scores</button>
+      <button id="exportBtn" type="button" disabled>Export CSV</button>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="upload">
+    <h2>Upload Dataset</h2>
+    <p>Expected columns are auto-detected: <code>id</code>, <code>gold_summary</code>, and <code>pred</code>. You can change the selected columns after choosing a file.</p>
+    <div class="upload-grid">
+      <div class="field"><label for="csvFile">CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv"></div>
+      <div class="field"><label for="datasetName">Dataset name</label><input id="datasetName" type="text" placeholder="Qwen mildsum"></div>
+      <div class="field"><label for="goldColumn">Gold column</label><select id="goldColumn"></select></div>
+      <div class="field"><label for="predColumn">Prediction column</label><select id="predColumn"></select></div>
+      <button id="loadBtn" type="button" disabled>Load</button>
+    </div>
+  </div>
+  <div class="guide">
+    <section><h2>Completeness</h2><p>Do the correct gold points appear in the prediction?</p></section>
+    <section><h2>Faithfulness</h2><p>Wrong judge, court, party, law, date, reasoning, or outcome means hallucination.</p></section>
+    <section><h2>Fluency</h2><p>Only judge grammar, flow, and readability. Ignore factual correctness here.</p></section>
+  </div>
+  <div id="message"></div>
+  <div id="items"></div>
+  <div class="footer-nav"><button class="secondary" id="bottomPrev" type="button" disabled>Previous</button><button id="bottomNext" type="button" disabled>Next</button></div>
+</main>
+<script>
+(function() {
+  var pageSize = 3;
+  var datasets = {};
+  var scores = {};
+  var activeDataset = '';
+  var activeIndex = 0;
+  var pending = null;
+  var els = {
+    file: document.getElementById('csvFile'),
+    name: document.getElementById('datasetName'),
+    gold: document.getElementById('goldColumn'),
+    pred: document.getElementById('predColumn'),
+    load: document.getElementById('loadBtn'),
+    dataset: document.getElementById('datasetSelect'),
+    jump: document.getElementById('jumpSelect'),
+    progress: document.getElementById('progress'),
+    items: document.getElementById('items'),
+    message: document.getElementById('message'),
+    exportBtn: document.getElementById('exportBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    prevBtn: document.getElementById('prevBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    bottomPrev: document.getElementById('bottomPrev'),
+    bottomNext: document.getElementById('bottomNext')
+  };
+
+  function parseCSV(text) {
+    var rows = [], row = [], cell = '', inQuotes = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i], next = text[i + 1];
+      if (ch === '"') {
+        if (inQuotes && next === '"') { cell += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        row.push(cell); cell = '';
+      } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        if (ch === '\r' && next === '\n') i++;
+        row.push(cell);
+        if (row.some(function(v) { return v !== ''; })) rows.push(row);
+        row = []; cell = '';
+      } else {
+        cell += ch;
+      }
+    }
+    row.push(cell);
+    if (row.some(function(v) { return v !== ''; })) rows.push(row);
+    return rows;
+  }
+  function norm(s) { return String(s || '').trim().toLowerCase().replace(/[\s-]+/g, '_'); }
+  function pickColumn(headers, candidates) {
+    var normalized = headers.map(norm);
+    for (var i = 0; i < candidates.length; i++) {
+      var idx = normalized.indexOf(candidates[i]);
+      if (idx >= 0) return headers[idx];
+    }
+    return headers[0] || '';
+  }
+  function setOptions(select, headers, selected) {
+    select.innerHTML = headers.map(function(h) {
+      return '<option value="' + escapeAttr(h) + '"' + (h === selected ? ' selected' : '') + '>' + escapeHTML(h) + '</option>';
+    }).join('');
+  }
+  function escapeHTML(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+  function escapeAttr(s) { return escapeHTML(s); }
+  function datasetKey(name) {
+    return String(name || 'dataset').trim().replace(/\s+/g, '_').toLowerCase();
+  }
+  function scoreControl(key, metric) {
+    var title = metric[0].toUpperCase() + metric.slice(1);
+    var out = '<div class="metric"><label>' + title + '</label><div class="score-row">';
+    for (var n = 0; n <= 5; n++) {
+      out += '<label><input type="radio" name="' + escapeAttr(metric + '-' + key) + '" data-key="' + escapeAttr(key) + '" data-field="' + metric + '" value="' + n + '"><span>' + n + '</span></label>';
+    }
+    var hint = metric === 'completeness' ? 'Are the important gold points present?' : metric === 'faithfulness' ? 'Any hallucinated or wrong facts?' : 'Grammar and readability only.';
+    return out + '</div><div class="hint">' + hint + '</div></div>';
+  }
+  function showMessage(text, warning) {
+    els.message.innerHTML = text ? '<div class="' + (warning ? 'warning' : 'meta') + '">' + escapeHTML(text) + '</div>' : '';
+  }
+  function renderDatasetOptions() {
+    var names = Object.keys(datasets);
+    els.dataset.innerHTML = names.map(function(k) {
+      return '<option value="' + escapeAttr(k) + '">' + escapeHTML(datasets[k].name + ' (' + datasets[k].rows.length + ')') + '</option>';
+    }).join('');
+    var enabled = names.length > 0;
+    [els.exportBtn, els.clearBtn, els.prevBtn, els.nextBtn, els.bottomPrev, els.bottomNext].forEach(function(btn) { btn.disabled = !enabled; });
+  }
+  function renderJump() {
+    var ds = datasets[activeDataset];
+    if (!ds) { els.jump.innerHTML = ''; return; }
+    var html = '';
+    for (var i = 0; i < ds.rows.length; i += pageSize) {
+      var end = Math.min(i + pageSize, ds.rows.length);
+      html += '<option value="' + i + '">Items ' + (i + 1) + '-' + end + ' / ' + ds.rows.length + '</option>';
+    }
+    els.jump.innerHTML = html;
+    els.jump.value = String(activeIndex);
+  }
+  function renderItems() {
+    var ds = datasets[activeDataset];
+    if (!ds) { els.items.innerHTML = ''; els.progress.textContent = 'No dataset loaded.'; return; }
+    activeIndex = Math.max(0, Math.min(ds.rows.length - 1, Math.floor(activeIndex / pageSize) * pageSize));
+    var visible = ds.rows.slice(activeIndex, activeIndex + pageSize);
+    els.items.innerHTML = visible.map(function(row, offset) {
+      var itemNumber = activeIndex + offset + 1;
+      var key = activeDataset + ':' + row.id + ':' + itemNumber;
+      var s = scores[key] || {};
+      var warning = (!row.gold || !row.pred) ? '<div class="warning">This row has an empty gold or prediction field.</div>' : '';
+      return '<article class="item" data-key="' + escapeAttr(key) + '">' +
+        '<div class="item-head"><div><div class="item-title">' + escapeHTML(ds.name) + ' Item ' + itemNumber + ' / ' + ds.rows.length + ' - id ' + escapeHTML(row.id) + '</div><div class="status">Source row: ' + escapeHTML(row.sourceRow) + '</div></div>' +
+        '<label class="done-check"><input type="checkbox" data-key="' + escapeAttr(key) + '" data-field="done"' + (s.done ? ' checked' : '') + '> Mark reviewed</label></div>' +
+        warning +
+        '<div class="eval">' + scoreControl(key, 'completeness') + scoreControl(key, 'faithfulness') + scoreControl(key, 'fluency') +
+        '<div class="metric notes"><label>Notes</label><textarea data-key="' + escapeAttr(key) + '" data-field="notes" placeholder="Missing points, hallucinations, grammar issues...">' + escapeHTML(s.notes || '') + '</textarea></div></div>' +
+        '<div class="compare"><section class="textbox gold"><h3>Gold Summary</h3><div>' + escapeHTML(row.gold || '[Missing gold text]') + '</div></section>' +
+        '<section class="textbox pred"><h3>Prediction</h3><div>' + escapeHTML(row.pred || '[Missing prediction text]') + '</div></section></div></article>';
+    }).join('');
+    restoreVisibleScores();
+    renderJump();
+    updateProgress();
+  }
+  function restoreVisibleScores() {
+    els.items.querySelectorAll('article').forEach(function(item) {
+      var key = item.dataset.key;
+      var s = scores[key] || {};
+      ['completeness','faithfulness','fluency'].forEach(function(field) {
+        if (s[field] !== undefined) {
+          var input = item.querySelector('input[data-field="' + field + '"][value="' + s[field] + '"]');
+          if (input) input.checked = true;
+        }
+      });
+    });
+  }
+  function updateProgress() {
+    var ds = datasets[activeDataset];
+    if (!ds) return;
+    var done = 0;
+    ds.rows.forEach(function(row, i) {
+      var key = activeDataset + ':' + row.id + ':' + (i + 1);
+      var s = scores[key] || {};
+      if (s.completeness !== undefined && s.faithfulness !== undefined && s.fluency !== undefined) done++;
+    });
+    els.progress.textContent = ds.name + ': ' + done + ' / ' + ds.rows.length + ' fully scored';
+  }
+  els.file.addEventListener('change', function() {
+    var file = els.file.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      var rows = parseCSV(String(reader.result || ''));
+      if (rows.length < 2) { showMessage('Could not find data rows in this CSV.', true); return; }
+      var headers = rows[0].map(function(h) { return h.trim(); });
+      pending = { fileName: file.name, headers: headers, rows: rows.slice(1) };
+      els.name.value = file.name.replace(/\.[^.]+$/, '');
+      setOptions(els.gold, headers, pickColumn(headers, ['gold_summary','gold','reference','summary']));
+      setOptions(els.pred, headers, pickColumn(headers, ['pred','prediction','generated_summary','model_summary']));
+      els.load.disabled = false;
+      showMessage('Loaded headers from ' + file.name + '. Choose columns, then click Load.', false);
+    };
+    reader.readAsText(file);
+  });
+  els.load.addEventListener('click', function() {
+    if (!pending) return;
+    var headers = pending.headers;
+    var idCol = pickColumn(headers, ['id','sample_id','index']);
+    var goldIdx = headers.indexOf(els.gold.value);
+    var predIdx = headers.indexOf(els.pred.value);
+    var idIdx = headers.indexOf(idCol);
+    var name = els.name.value.trim() || pending.fileName.replace(/\.[^.]+$/, '');
+    var key = datasetKey(name);
+    var rows = pending.rows.map(function(row, idx) {
+      return {
+        id: idIdx >= 0 && row[idIdx] ? row[idIdx] : String(idx),
+        gold: goldIdx >= 0 ? (row[goldIdx] || '') : '',
+        pred: predIdx >= 0 ? (row[predIdx] || '') : '',
+        sourceRow: String(idx + 2)
+      };
+    }).filter(function(row) { return row.gold || row.pred; });
+    datasets[key] = { name: name, rows: rows };
+    activeDataset = key;
+    activeIndex = 0;
+    renderDatasetOptions();
+    els.dataset.value = key;
+    renderItems();
+    showMessage('Dataset loaded: ' + name + ' (' + rows.length + ' rows).', false);
+  });
+  els.dataset.addEventListener('change', function() { activeDataset = els.dataset.value; activeIndex = 0; renderItems(); });
+  els.jump.addEventListener('change', function() { activeIndex = Number(els.jump.value || 0); renderItems(); });
+  function move(delta) { activeIndex += delta; renderItems(); }
+  els.prevBtn.addEventListener('click', function() { move(-pageSize); });
+  els.nextBtn.addEventListener('click', function() { move(pageSize); });
+  els.bottomPrev.addEventListener('click', function() { move(-pageSize); });
+  els.bottomNext.addEventListener('click', function() { move(pageSize); });
+  document.addEventListener('change', function(e) {
+    var t = e.target;
+    if (!t.dataset || !t.dataset.key) return;
+    scores[t.dataset.key] = scores[t.dataset.key] || {};
+    scores[t.dataset.key][t.dataset.field] = t.type === 'checkbox' ? t.checked : t.value;
+    updateProgress();
+  });
+  document.addEventListener('input', function(e) {
+    var t = e.target;
+    if (!t.dataset || t.dataset.field !== 'notes') return;
+    scores[t.dataset.key] = scores[t.dataset.key] || {};
+    scores[t.dataset.key].notes = t.value;
+  });
+  els.clearBtn.addEventListener('click', function() {
+    if (!activeDataset || !confirm('Clear scores for the current dataset?')) return;
+    Object.keys(scores).forEach(function(k) { if (k.indexOf(activeDataset + ':') === 0) delete scores[k]; });
+    renderItems();
+  });
+  els.exportBtn.addEventListener('click', function() {
+    var cols = ['dataset','id','item_number','completeness','faithfulness','fluency','done','notes','gold_summary','pred'];
+    function csvEscape(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+    var lines = [cols.join(',')];
+    Object.keys(datasets).forEach(function(dsKey) {
+      datasets[dsKey].rows.forEach(function(row, i) {
+        var scoreKey = dsKey + ':' + row.id + ':' + (i + 1);
+        var s = scores[scoreKey] || {};
+        lines.push([datasets[dsKey].name, row.id, i + 1, s.completeness, s.faithfulness, s.fluency, s.done, s.notes, row.gold, row.pred].map(csvEscape).join(','));
+      });
+    });
+    var blob = new Blob([lines.join(String.fromCharCode(10))], {type:'text/csv;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'human_eval_scores.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+})();
+</script>
+</body>
+</html>

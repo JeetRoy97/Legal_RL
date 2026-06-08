@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NER Entity Validator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: #161b22;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1f6feb 0%, #388bfd 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            overflow-y: auto;
+        }
+        
+        .summary-section {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        
+        .summary-title {
+            font-size: 14px;
+            color: #58a6ff;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .summary-text {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #c9d1d9;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .entities-section {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        
+        .entity-type {
+            margin-bottom: 25px;
+        }
+        
+        .entity-type-header {
+            font-size: 12px;
+            color: #58a6ff;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px;
+            background: #161b22;
+            border-radius: 4px;
+        }
+        
+        .entity-item {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .entity-text {
+            font-size: 12px;
+            color: #c9d1d9;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #0d1117;
+            border-radius: 4px;
+            word-wrap: break-word;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 6px 10px;
+            border: 1px solid #30363d;
+            background: #0d1117;
+            color: #c9d1d9;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .btn:hover {
+            border-color: #58a6ff;
+            background: #0d419f;
+        }
+        
+        .btn.selected {
+            background: #58a6ff;
+            color: #0d1117;
+            border-color: #58a6ff;
+        }
+        
+        .btn.correct {
+            border-color: #3fb950;
+        }
+        
+        .btn.boundary {
+            border-color: #d29922;
+        }
+        
+        .btn.type {
+            border-color: #f85149;
+        }
+        
+        .btn.correct.selected {
+            background: #3fb950;
+        }
+        
+        .btn.boundary.selected {
+            background: #d29922;
+        }
+        
+        .btn.type.selected {
+            background: #f85149;
+        }
+        
+        .notes-input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            color: #c9d1d9;
+            font-size: 12px;
+            font-family: inherit;
+        }
+        
+        .notes-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+        
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 30px;
+            border-top: 1px solid #30363d;
+            flex-wrap: wrap;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: 1px solid #30363d;
+            background: #161b22;
+            color: #c9d1d9;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #0d419f;
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: #1f6feb;
+            border-color: #1f6feb;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #388bfd;
+            border-color: #58a6ff;
+        }
+        
+        .pagination-info {
+            color: #8b949e;
+            font-size: 13px;
+        }
+        
+        .file-upload-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .file-upload-label {
+            padding: 10px 20px;
+            background: #1f6feb;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid #1f6feb;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 13px;
+        }
+        
+        .file-upload-label:hover {
+            background: #388bfd;
+            border-color: #58a6ff;
+        }
+        
+        .file-name {
+            color: #8b949e;
+            font-size: 12px;
+            margin: 0 10px;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏷️ NER Entity Validator</h1>
+            <p>Review & Validate Extracted Entities • Export Results</p>
+            <div class="file-upload-section" style="margin-top: 20px;">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".json" onchange="handleFileUpload(event)">
+                    <label for="fileInput" class="file-upload-label">📁 Add File</label>
+                </div>
+                <span class="file-name" id="fileName"></span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="summary-section">
+                <div class="summary-title">📄 NER Summary</div>
+                <div class="summary-text" id="summaryText"></div>
+            </div>
+            
+            <div class="entities-section">
+                <div class="summary-title">🏷️ Extracted Entities</div>
+                <div id="entitiesContainer"></div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="nav-buttons">
+                <button onclick="previousPage()" id="prevBtn">← Previous</button>
+                <button onclick="nextPage()" id="nextBtn">Next →</button>
+            </div>
+            <div class="pagination-info">
+                <input type="number" id="goToInput" min="1" placeholder="Jump to ID" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid #30363d; background: #0d1117; color: #c9d1d9;" onkeypress="handleGoToKeypress(event)">
+                <button onclick="goToSummary()" style="padding: 8px 12px; margin-left: 5px; font-size: 12px;">Go</button>
+                <span style="margin-left: 15px;">Summary <span id="summaryNum">1</span> of <span id="totalSummaries">1</span></span>
+            </div>
+            <div>
+                <button class="btn-primary" onclick="exportToExcel()">📊 Export as Excel</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let samplesData = [];
+        let validationData = {};
+        let currentPage = 1;
+        const summariesPerPage = 1;
+        
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const fileName = file.name;
+            document.getElementById('fileName').textContent = `Loaded: ${fileName}`;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    processUploadedData(jsonData);
+                } catch (error) {
+                    alert('Error parsing JSON file: ' + error.message);
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function processUploadedData(data) {
+            samplesData = [];
+            
+            // Handle if data is an array
+            if (Array.isArray(data)) {
+                data.forEach((item, index) => {
+                    samplesData.push(parseDataItem(item, index + 1));
+                });
+            } 
+            // Handle if data is an object with items
+            else if (data.items && Array.isArray(data.items)) {
+                data.items.forEach((item, index) => {
+                    samplesData.push(parseDataItem(item, index + 1));
+                });
+            }
+            // Handle if data is an object with data property
+            else if (data.data && Array.isArray(data.data)) {
+                data.data.forEach((item, index) => {
+                    samplesData.push(parseDataItem(item, index + 1));
+                });
+            }
+            // Single object
+            else {
+                samplesData.push(parseDataItem(data, 1));
+            }
+            
+            // Ask user if they want to load previous validation state
+            const shouldLoadState = confirm('Do you want to load the previous validation state from your browser? Click \'Cancel\' to start fresh.');
+            
+            currentPage = 1;
+            validationData = {};
+            
+            if (shouldLoadState) {
+                loadValidationData();
+            } else {
+                // Clear localStorage so we don't accidentally mix it later
+                localStorage.removeItem('nerValidation');
+            }
+            
+            updateTotalPages();
+            renderPage();
+            updateButtonStates();
+        }
+        
+        function parseDataItem(item, index) {
+            const id = item.id || index;
+            let summary = '';
+            let entities = {};
+            
+            // Extract text content and identify entities
+            if (item.summary) {
+                summary = item.summary;
+            } else if (item.text) {
+                summary = item.text;
+            } else if (item.content) {
+                summary = item.content;
+            } else if (item.NER_Summary) {
+                summary = item.NER_Summary;
+            } else {
+                // Try to find text content by looking for common property names
+                for (const key in item) {
+                    if (typeof item[key] === 'string' && item[key].length > 50) {
+                        summary = item[key];
+                        break;
+                    }
+                }
+            }
+            
+            // Extract entities if they exist in the data
+            if (item.entities && typeof item.entities === 'object') {
+                entities = item.entities;
+            } else if (item.extracted_entities && typeof item.extracted_entities === 'object') {
+                entities = item.extracted_entities;
+            } else if (item.ner && typeof item.ner === 'object') {
+                entities = item.ner;
+            } else {
+                // Extract entities from XML-like tags in summary
+                entities = extractEntitiesFromText(summary);
+            }
+            
+            return {
+                id: id,
+                NER_Summary: summary,
+                entities: entities
+            };
+        }
+        
+        function extractEntitiesFromText(text) {
+            const entities = {};
+            
+            // Regex to find all tags like <TAG>content</TAG>
+            const tagRegex = /<([A-Z_]+)>([^<]+)<\/\1>/g;
+            let match;
+            
+            while ((match = tagRegex.exec(text)) !== null) {
+                const tag = match[1];
+                const content = match[2];
+                
+                if (!entities[tag]) {
+                    entities[tag] = [];
+                }
+                
+                // Add only if not already present (avoid duplicates)
+                if (!entities[tag].includes(content)) {
+                    entities[tag].push(content);
+                }
+            }
+            
+            return entities;
+        }
+        
+        function init() {
+            // Do not load validation data initially as there is no file loaded yet.
+            // Data will be loaded/cleared when a file is uploaded.
+            updateTotalPages();
+            renderPage();
+            updateButtonStates();
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(event) {
+                // Ctrl+J or Ctrl+G: Jump to summary
+                if ((event.ctrlKey || event.metaKey) && (event.key === 'j' || event.key === 'g')) {
+                    event.preventDefault();
+                    document.getElementById('goToInput').focus();
+                    document.getElementById('goToInput').select();
+                }
+                // Ctrl+Right Arrow: Next page
+                if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    nextPage();
+                }
+                // Ctrl+Left Arrow: Previous page
+                if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    previousPage();
+                }
+            });
+        }
+        
+        function getTotalPages() {
+            return Math.ceil(samplesData.length / summariesPerPage);
+        }
+        
+        function updateTotalPages() {
+            document.getElementById('totalSummaries').textContent = samplesData.length;
+        }
+        
+        function getCurrentPageSamples() {
+            const startIdx = (currentPage - 1) * summariesPerPage;
+            const endIdx = startIdx + summariesPerPage;
+            return samplesData.slice(startIdx, endIdx);
+        }
+        
+        function renderPage() {
+            const pageSamples = getCurrentPageSamples();
+            if (pageSamples.length === 0) {
+                document.getElementById('summaryText').textContent = 'Please upload a JSON file to begin.';
+                document.getElementById('entitiesContainer').innerHTML = '';
+                document.getElementById('summaryNum').textContent = '0';
+                document.getElementById('totalSummaries').textContent = '0';
+                return;
+            }
+            
+            const summary = pageSamples[0];
+            const summaryIdx = currentPage;
+            document.getElementById('summaryNum').textContent = summaryIdx;
+            document.getElementById('summaryText').textContent = summary.NER_Summary;
+            
+            renderEntities(summary);
+        }
+        
+        function renderEntities(summary) {
+            const container = document.getElementById('entitiesContainer');
+            container.innerHTML = '';
+            
+            if (!summary.entities || Object.keys(summary.entities).length === 0) {
+                container.innerHTML = '<p style="color: #6e7681;">No entities found in this summary.</p>';
+                return;
+            }
+            
+            // Get or initialize validation data for this summary
+            if (!validationData[summary.id]) {
+                validationData[summary.id] = {};
+            }
+            
+            // Sort entity types for consistent display
+            const entityTypes = Object.keys(summary.entities).sort();
+            
+            entityTypes.forEach(entityType => {
+                const entities = summary.entities[entityType];
+                
+                const typeDiv = document.createElement('div');
+                typeDiv.className = 'entity-type';
+                
+                const header = document.createElement('div');
+                header.className = 'entity-type-header';
+                header.textContent = `${entityType} (${entities.length})`;
+                typeDiv.appendChild(header);
+                
+                entities.forEach((entity, idx) => {
+                    const key = `${entityType}_${idx}`;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'entity-item';
+                    
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'entity-text';
+                    textDiv.textContent = entity;
+                    itemDiv.appendChild(textDiv);
+                    
+                    const btnGroup = document.createElement('div');
+                    btnGroup.className = 'button-group';
+                    
+                    const savedValue = validationData[summary.id][key] || null;
+                    
+                    const btnCorrect = document.createElement('button');
+                    btnCorrect.className = 'btn correct';
+                    btnCorrect.textContent = '✓ Correct';
+                    btnCorrect.onclick = () => selectValidation(summary.id, key, 'Correct', btnCorrect, btnGroup);
+                    if (savedValue === 'Correct') {
+                        btnCorrect.classList.add('selected');
+                    }
+                    btnGroup.appendChild(btnCorrect);
+                    
+                    const btnBoundary = document.createElement('button');
+                    btnBoundary.className = 'btn boundary';
+                    btnBoundary.textContent = '⚠ Boundary';
+                    btnBoundary.onclick = () => selectValidation(summary.id, key, 'Boundary error', btnBoundary, btnGroup);
+                    if (savedValue === 'Boundary error') {
+                        btnBoundary.classList.add('selected');
+                    }
+                    btnGroup.appendChild(btnBoundary);
+                    
+                    const btnType = document.createElement('button');
+                    btnType.className = 'btn type';
+                    btnType.textContent = '❌ Type Mismatch';
+                    btnType.onclick = () => selectValidation(summary.id, key, 'Type Mismatch', btnType, btnGroup);
+                    if (savedValue === 'Type Mismatch') {
+                        btnType.classList.add('selected');
+                    }
+                    btnGroup.appendChild(btnType);
+                    
+                    itemDiv.appendChild(btnGroup);
+                    
+                    const notesKey = `${entityType}_${idx}_notes`;
+                    const savedNotes = validationData[summary.id][notesKey] || '';
+                    
+                    const notesInput = document.createElement('input');
+                    notesInput.type = 'text';
+                    notesInput.className = 'notes-input';
+                    notesInput.placeholder = 'Add notes...';
+                    notesInput.value = savedNotes;
+                    notesInput.onchange = (e) => saveNotes(summary.id, notesKey, e.target.value);
+                    
+                    itemDiv.appendChild(notesInput);
+                    
+                    typeDiv.appendChild(itemDiv);
+                });
+                
+                container.appendChild(typeDiv);
+            });
+        }
+        
+        function selectValidation(summaryId, entityKey, validation, btnElement, btnGroup) {
+            // Remove selected class from all buttons in this group
+            btnGroup.querySelectorAll('.btn').forEach(btn => btn.classList.remove('selected'));
+            // Add selected class to clicked button
+            btnElement.classList.add('selected');
+            // Save validation
+            validationData[summaryId][entityKey] = validation;
+            saveValidationData();
+        }
+        
+        function saveNotes(summaryId, notesKey, notesText) {
+            validationData[summaryId][notesKey] = notesText;
+            saveValidationData();
+        }
+        
+        function nextPage() {
+            if (currentPage < getTotalPages()) {
+                currentPage++;
+                renderPage();
+                updateButtonStates();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPage();
+                updateButtonStates();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+        
+        function updateButtonStates() {
+            const totalPages = getTotalPages();
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages || totalPages === 0;
+        }
+        
+        function goToSummary() {
+            const input = document.getElementById('goToInput').value.trim();
+            if (!input) return;
+            
+            const targetId = parseInt(input);
+            if (isNaN(targetId)) {
+                alert('Please enter a valid ID number');
+                return;
+            }
+            
+            // Find the index of the item with this ID
+            const index = samplesData.findIndex(item => item.id === targetId);
+            
+            if (index === -1) {
+                alert(`Summary with ID ${targetId} not found`);
+                return;
+            }
+            
+            // Navigate to that page
+            currentPage = Math.floor(index / summariesPerPage) + 1;
+            renderPage();
+            updateButtonStates();
+            document.getElementById('goToInput').value = '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function handleGoToKeypress(event) {
+            if (event.key === 'Enter') {
+                goToSummary();
+            }
+        }
+        
+        function exportToExcel() {
+            const rows = [];
+            
+            // Header row
+            const header = ['id', 'extracted_tag', 'extracted_text', 'answer', 'notes'];
+            rows.push(header);
+            
+            // Data rows - one-to-many format
+            samplesData.forEach(sample => {
+                if (!sample.entities || Object.keys(sample.entities).length === 0) {
+                    return;
+                }
+                
+                // Initialize validation data for this sample if not exists
+                if (!validationData[sample.id]) {
+                    validationData[sample.id] = {};
+                }
+                
+                // Sort entity types for consistent display
+                const entityTypes = Object.keys(sample.entities).sort();
+                
+                entityTypes.forEach(entityType => {
+                    const entities = sample.entities[entityType];
+                    
+                    entities.forEach((entity, idx) => {
+                        const key = `${entityType}_${idx}`;
+                        const validation = validationData[sample.id][key] || 'Not reviewed';
+                        const notesKey = `${entityType}_${idx}_notes`;
+                        const notes = validationData[sample.id][notesKey] || '';
+                        
+                        const row = [
+                            sample.id,
+                            entityType,
+                            entity,
+                            validation,
+                            notes
+                        ];
+                        rows.push(row);
+                    });
+                });
+            });
+            
+            // Convert to CSV
+            let csv = '';
+            rows.forEach(row => {
+                csv += row.map(cell => {
+                    const escaped = String(cell).replace(/"/g, '""');
+                    return '"' + escaped + '"';
+                }).join(',') + '\n';
+            });
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'ner_validation_' + new Date().toISOString().split('T')[0] + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function saveValidationData() {
+            localStorage.setItem('nerValidation', JSON.stringify(validationData));
+        }
+        
+        function loadValidationData() {
+            const saved = localStorage.getItem('nerValidation');
+            if (saved) {
+                validationData = JSON.parse(saved);
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
