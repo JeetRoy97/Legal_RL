@@ -1,224 +1,196 @@
-Entity-Guided Reinforcement Learning for Factual Legal Summarization”
 
-Overview
+
+### Entity-Guided Reinforcement Learning for Factual Legal Summarization
+
+## Overview
 
 This repository contains:
 
-* TANHA entity alignment framework
-* Entity-guided reward formulation
-* Reinforcement learning training scripts using GRPO
-* Ablation variants of TANHA
-* Legal NER annotation interface
-* Human evaluation interface
+- TANHA entity alignment framework
+- Entity-guided reward formulation
+- Reinforcement learning training scripts using GRPO
+- Ablation variants of TANHA
+- Legal NER annotation interface
+- Human evaluation interface
 
 TANHA aligns legal entities between a source judgment and a generated summary using a combination of:
 
-* Canonicalization
-* Lexical matching
-* Semantic matching
+- Canonicalization
+- Lexical matching
+- Semantic matching
 
-The resulting alignments are used to compute entity-level coverage and hallucination signals, which serve as rewards during reinforcement learning.
+The resulting alignments are used to compute entity-level coverage and hallucination signals, which are subsequently used as rewards during reinforcement learning.
 
-⸻
+---
 
-Repository Structure
+## Repository Structure
 
-.
-├── data/
-│   ├── train.jsonl
-│   ├── val.jsonl
-│   ├── train_entity_cache.pkl
-│   └── val_entity_cache.pkl
-│
-├── tanha/
-│   ├── tanha_full.py
-│   ├── tanha_no_canonicalization.py
-│   ├── tanha_no_lexical.py
-│   └── tanha_no_semantic.py
-│
-├── rl/
-│   ├── train_rl_full.py
-│   ├── train_rl_no_canonicalization.py
-│   ├── train_rl_no_lexical.py
-│   └── train_rl_no_semantic.py
-│
-├── annotation_tools/
-│   ├── ner_annotation.html
-│   └── human_evaluation.html
-│
-├── requirements.txt
-└── README.md
+text . ├── data/ │   ├── train.jsonl │   ├── val.jsonl │   ├── train_entity_cache.pkl │   └── val_entity_cache.pkl │ ├── tanha/ │   ├── tanha_full.py │   ├── tanha_no_canonicalization.py │   ├── tanha_no_lexical.py │   └── tanha_no_semantic.py │ ├── rl/ │   ├── train_rl_full.py │   ├── train_rl_no_canonicalization.py │   ├── train_rl_no_lexical.py │   └── train_rl_no_semantic.py │ ├── annotation_tools/ │   ├── ner_annotation.html │   └── human_evaluation.html │ ├── requirements.txt └── README.md 
 
-⸻
+---
 
-Installation
+## Installation
 
-Create a fresh environment:
+Create a new environment:
 
-conda create -n tanha python=3.11
-conda activate tanha
+bash conda create -n tanha python=3.11 conda activate tanha 
 
 Install dependencies:
 
-pip install -r requirements.txt
+bash pip install -r requirements.txt 
 
-⸻
+---
 
-Required Models
+## Required Models
 
-Sentence Embeddings
+### Sentence Embedding Model
 
-TANHA uses:
+TANHA uses the following sentence embedding model for semantic entity matching:
 
-BAAI/bge-large-en-v1.5
+text BAAI/bge-large-en-v1.5 
 
-for semantic entity matching.
+### Legal NER Model
 
-Legal NER Model
+The reinforcement learning reward pipeline requires a legal-domain NER model:
 
-The reward pipeline expects a legal-domain NER model:
+text en_legal_ner_trf 
 
-en_legal_ner_trf
+Ensure that the model is installed and accessible in the local environment before running training scripts.
 
-Install or place the model in your local environment before training.
+---
 
-⸻
+## Data Format
 
-Data Format
+Training and validation datasets should be provided in JSONL format and contain at least the following fields:
 
-Training and validation files should be JSONL files containing at least:
+json {   "EN_Judgment": "...",   "SANITIZED_SUMMARY": "..." } 
 
-{
-  "EN_Judgment": "...",
-  "SANITIZED_SUMMARY": "..."
-}
+---
 
-⸻
+## Entity Cache
 
-Entity Cache
+To avoid repeated NER extraction and embedding computation during RL training, TANHA uses pre-computed entity caches.
 
-The RL reward uses pre-computed entity caches.
+Each cache entry contains:
 
-Each cache contains:
+python {     "source_metadata": ...,     "source_embeddings": ...,     "gold_metadata": ...,     "gold_embeddings": ... } 
 
-{
-    "source_metadata": ...,
-    "source_embeddings": ...,
-    "gold_metadata": ...,
-    "gold_embeddings": ...
-}
+---
 
-These caches are generated before RL training to avoid repeated NER extraction and embedding computation.
+## Running TANHA Alignment
 
-⸻
+Run the complete TANHA alignment framework:
 
-Running TANHA Alignment
+bash python tanha/tanha_full.py 
 
-Example:
+### Ablation Variants
 
-python tanha/tanha_full.py
+Without canonicalization:
 
-Ablation variants:
+bash python tanha/tanha_no_canonicalization.py 
 
-python tanha/tanha_no_canonicalization.py
-python tanha/tanha_no_lexical.py
-python tanha/tanha_no_semantic.py
+Without lexical matching:
 
-⸻
+bash python tanha/tanha_no_lexical.py 
 
-Running Reinforcement Learning
+Without semantic matching:
+
+bash python tanha/tanha_no_semantic.py 
+
+---
+
+## Running Reinforcement Learning
 
 Full TANHA reward:
 
-python rl/train_rl_full.py
+bash python rl/train_rl_full.py 
 
-No Canonicalization:
+No canonicalization:
 
-python rl/train_rl_no_canonicalization.py
+bash python rl/train_rl_no_canonicalization.py 
 
-No Lexical Matching:
+No lexical matching:
 
-python rl/train_rl_no_lexical.py
+bash python rl/train_rl_no_lexical.py 
 
-No Semantic Matching:
+No semantic matching:
 
-python rl/train_rl_no_semantic.py
+bash python rl/train_rl_no_semantic.py 
 
-⸻
+---
 
-Reward Formulation
+## Reward Formulation
 
-The RL reward is computed from TANHA alignments.
+The reinforcement learning reward is computed directly from TANHA entity alignments.
 
-Coverage:
+### Coverage
 
-Coverage =
+[
+\text{Coverage}
+=
 \sum_{t \in \mathcal{T}}
 w_t
-\frac{|E_{match,t}|}
-{|E_{source,t}|}
+\frac{|E_{\text{match},t}|}
+{|E_{\text{source},t}|}
+]
 
-Hallucination:
+### Hallucination
 
-Hallucination =
+[
+\text{Hallucination}
+=
 \sum_{t \in \mathcal{T}}
 w_t
-\frac{|E_{unmatched,t}|}
-{|E_{generated,t}|}
+\frac{|E_{\text{unmatched},t}|}
+{|E_{\text{generated},t}|}
+]
 
-Final reward:
+### Final Reward
 
-R =
-\alpha \cdot Coverage
+[
+R
+=
+\alpha \cdot \text{Coverage}
 -
-\beta \cdot Hallucination
+\beta \cdot \text{Hallucination}
+]
 
 where the entity-type weights are derived from dataset-level retention statistics.
 
-⸻
+---
 
-Human Evaluation
+## Annotation and Human Evaluation Tools
 
-The repository contains browser-based interfaces for:
+The repository includes browser-based interfaces used during dataset creation and evaluation.
 
-Named Entity Annotation
+### Named Entity Annotation
 
-annotation_tools/ner_annotation.html
+text annotation_tools/ner_annotation.html 
 
-Human Evaluation
+### Human Evaluation
 
-annotation_tools/human_evaluation.html
+text annotation_tools/human_evaluation.html 
 
-These interfaces were used during dataset construction and evaluation.
+---
 
-⸻
+## Reproducibility
 
-Reproducibility
+Experiments reported in the paper were conducted using:
 
-Experiments were conducted using:
+- Fixed random seed
+- LoRA fine-tuning
+- GRPO optimization
+- TANHA-based entity alignment
+- Entity-guided reinforcement learning reward
 
-* Fixed random seed
-* LoRA fine-tuning
-* GRPO optimization
-* Entity-guided reward derived from TANHA
+All major hyperparameters are provided in the corresponding training scripts.
 
-Hyperparameters used in the paper are provided in the corresponding training scripts.
+---
 
-⸻
+## Citation
 
-Citation
+If you use this repository in your research, please cite:
 
-If you use this repository, please cite:
-
-@inproceedings{anonymous2026tanha,
-  title={TANHA: Entity-Guided Reinforcement Learning for Factual Legal Summarization},
-  author={Anonymous},
-  year={2026}
-}
+bibtex @inproceedings{anonymous2026tanha,   title={Entity-Guided Reinforcement Learning for Factual Legal Summarization},   author={Anonymous},   year={2026} } 
 
 The citation will be updated after publication.
-
-A couple of notes:
-
-1. Replace Anonymous only after the review process is complete.
-2. If you’re submitting double-blind, don’t include trained checkpoints, WandB links, institution names, usernames, server paths, or dataset download links that reveal authorship.
