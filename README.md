@@ -57,6 +57,9 @@ text en_legal_ner_trf
 
 Ensure that the model is installed and accessible in the local environment before running training scripts.
 
+pip install https://huggingface.co/ali6parmak/en_legal_ner_trf/resolve/main/en_legal_ner_trf-3.2.0-py3-none-any.whl
+
+
 ---
 
 ## Data Format
