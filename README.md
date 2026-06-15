@@ -122,70 +122,16 @@ bash python rl/train_rl_no_semantic.py
 
 ---
 
-## Reward Formulation
-
-The reinforcement learning reward is computed directly from TANHA entity alignments.
-
-### Coverage
-
-[
-\text{Coverage}
-=
-\sum_{t \in \mathcal{T}}
-w_t
-\frac{|E_{\text{match},t}|}
-{|E_{\text{source},t}|}
-]
-
-### Hallucination
-
-[
-\text{Hallucination}
-=
-\sum_{t \in \mathcal{T}}
-w_t
-\frac{|E_{\text{unmatched},t}|}
-{|E_{\text{generated},t}|}
-]
-
-### Final Reward
-
-[
-R
-=
-\alpha \cdot \text{Coverage}
--
-\beta \cdot \text{Hallucination}
-]
-
-where the entity-type weights are derived from dataset-level retention statistics.
-
----
-
 ## Annotation and Human Evaluation Tools
 
 The repository includes browser-based interfaces used during dataset creation and evaluation.
 
 ### Named Entity Annotation
 
-text annotation_tools/ner_annotation.html 
+ner_annotation.html 
 
 ### Human Evaluation
 
-text annotation_tools/human_evaluation.html 
-
----
-
-## Reproducibility
-
-Experiments reported in the paper were conducted using:
-
-- Fixed random seed
-- LoRA fine-tuning
-- GRPO optimization
-- TANHA-based entity alignment
-- Entity-guided reinforcement learning reward
-
-All major hyperparameters are provided in the corresponding training scripts.
+human_evaluation.html 
 
 ---
