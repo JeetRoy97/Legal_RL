@@ -66,7 +66,7 @@ pip install https://huggingface.co/ali6parmak/en_legal_ner_trf/resolve/main/en_l
 
 Training and validation datasets should be provided in JSONL format and contain at least the following fields:
 
-json {   "EN_Judgment": "...",   "SANITIZED_SUMMARY": "..." } 
+json {   "EN_Judgment": "...",   "SUMMARY": "..." } 
 
 ---
 
@@ -76,7 +76,7 @@ To avoid repeated NER extraction and embedding computation during RL training, T
 
 Each cache entry contains:
 
-python {     "source_metadata": ...,     "source_embeddings": ...,     "gold_metadata": ...,     "gold_embeddings": ... } 
+{"source_metadata": ...,     "source_embeddings": ...,     "gold_metadata": ...,     "gold_embeddings": ... }
 
 ---
 
@@ -84,21 +84,21 @@ python {     "source_metadata": ...,     "source_embeddings": ...,     "gold_met
 
 Run the complete TANHA alignment framework:
 
-bash python tanha/tanha_full.py 
+bash python ablations/tanha_full.py 
 
 ### Ablation Variants
 
 Without canonicalization:
 
-bash python tanha/tanha_no_canonicalization.py 
+bash python ablations/tanha_no_canonicalization.py 
 
 Without lexical matching:
 
-bash python tanha/tanha_no_lexical.py 
+bash python ablations/tanha_no_lexical.py 
 
 Without semantic matching:
 
-bash python tanha/tanha_no_semantic.py 
+bash python ablations/tanha_no_semantic.py 
 
 ---
 
