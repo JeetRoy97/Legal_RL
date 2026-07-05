@@ -1501,7 +1501,7 @@ diagnostic_10_samples(
 
 
 
-trainer.train(resume_from_checkpoint="llama_0shot_rl_modified_entity_reward_v2/checkpoint-2750")
+trainer.train()
 
 
 
