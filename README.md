@@ -1,137 +1,239 @@
-
-
-### Entity-Guided Reinforcement Learning for Factual Legal Summarization
+# Entity-Guided Reinforcement Learning for Factual Legal Summarization
 
 ## Overview
 
-This repository contains:
+This repository accompanies our paper on **Entity-Guided Reinforcement Learning for Factual Legal Summarization**.
 
-- TANHA entity alignment framework
-- Entity-guided reward formulation
-- Reinforcement learning training scripts using GRPO
-- Ablation variants of TANHA
-- Legal NER annotation interface
-- Human evaluation interface
+The proposed framework consists of two components:
 
-TANHA aligns legal entities between a source judgment and a generated summary using a combination of:
+1. **TANHA (Type-Aware Normalization and Hybrid Alignment)**, which aligns legal entities between the source judgment and the generated summary using:
+   - Canonicalization
+   - Lexical similarity
+   - Semantic similarity
+
+2. **Entity-guided Reinforcement Learning**, where the alignments produced by TANHA are used to compute a structural reward based on:
+   - Source entity coverage
+   - Entity hallucination penalty
+   - Length regularization
+
+The repository also includes all ablation implementations, annotation interfaces, and human evaluation tools used in the paper.
+
+---
+
+# Repository Structure
+
+```
+.
+├── ablations/
+│   ├── tanha_full.py
+│   ├── tanha_no_canonicalization.py
+│   ├── tanha_no_lexical.py
+│   └── tanha_no_semantic.py
+│
+├── rl_reward_full.py
+│
+├── human_validation.html
+├── ner_validator.html
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# File Description
+
+## Reinforcement Learning
+
+### `rl_reward_full.py`
+
+Implements the complete reinforcement learning framework described in the paper.
+
+This script includes
+
+- TANHA entity alignment
+- Structural entity reward
+- Source-entity coverage reward
+- Hallucination penalty
+- Length regularization
+- GRPO training
+- Validation and diagnostic utilities
+
+Running this script reproduces the proposed RL training framework described in the paper.
+
+---
+
+## TANHA Ablation Studies
+
+The `ablations/` directory contains the alignment variants used for the ablation study.
+
+### `tanha_full.py`
+
+Full TANHA alignment:
 
 - Canonicalization
 - Lexical matching
 - Semantic matching
 
-The resulting alignments are used to compute entity-level coverage and hallucination signals, which are subsequently used as rewards during reinforcement learning.
+This corresponds to the complete alignment method proposed in the paper.
 
 ---
 
-## Repository Structure
+### `tanha_no_canonicalization.py`
 
-text . ├── data/ │   ├── train.jsonl │   ├── val.jsonl │   ├── train_entity_cache.pkl │   └── val_entity_cache.pkl │ ├── tanha/ │   ├── tanha_full.py │   ├── tanha_no_canonicalization.py │   ├── tanha_no_lexical.py │   └── tanha_no_semantic.py │ ├── rl/ │   ├── train_rl_full.py │   ├── train_rl_no_canonicalization.py │   ├── train_rl_no_lexical.py │   └── train_rl_no_semantic.py │ ├── annotation_tools/ │   ├── ner_annotation.html │   └── human_evaluation.html │ ├── requirements.txt └── README.md 
+Removes the canonicalization stage while keeping lexical and semantic matching unchanged.
 
----
-
-## Installation
-
-Create a new environment:
-
-bash conda create -n tanha python=3.11 conda activate tanha 
-
-Install dependencies:
-
-bash pip install -r requirements.txt 
+Used for the "Without Canonicalization" ablation.
 
 ---
 
-## Required Models
+### `tanha_no_lexical.py`
 
-### Sentence Embedding Model
+Removes lexical matching while retaining canonicalization and semantic similarity.
 
-TANHA uses the following sentence embedding model for semantic entity matching:
+Used for the "Without Lexical Matching" ablation.
 
-text BAAI/bge-large-en-v1.5 
+---
 
-### Legal NER Model
+### `tanha_no_semantic.py`
 
-The reinforcement learning reward pipeline requires a legal-domain NER model:
+Removes semantic similarity matching while retaining canonicalization and lexical matching.
 
-text en_legal_ner_trf 
+Used for the "Without Semantic Matching" ablation.
 
-Ensure that the model is installed and accessible in the local environment before running training scripts.
+---
 
+# Installation
+
+Create a new environment
+
+```bash
+conda create -n tanha python=3.11
+conda activate tanha
+```
+
+Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# Required Models
+
+## Sentence Embedding Model
+
+Semantic entity matching uses
+
+```
+BAAI/bge-large-en-v1.5
+```
+
+---
+
+## Legal Named Entity Recognition
+
+Entity extraction requires
+
+```
+en_legal_ner_trf
+```
+
+Install using
+
+```bash
 pip install https://huggingface.co/ali6parmak/en_legal_ner_trf/resolve/main/en_legal_ner_trf-3.2.0-py3-none-any.whl
-
-
----
-
-## Data Format
-
-Training and validation datasets should be provided in JSONL format and contain at least the following fields:
-
-json {   "EN_Judgment": "...",   "SUMMARY": "..." } 
+```
 
 ---
 
-## Entity Cache
+# Dataset Format
 
-To avoid repeated NER extraction and embedding computation during RL training, TANHA uses pre-computed entity caches.
+Training and validation datasets are expected in JSONL format.
 
-Each cache entry contains:
+Minimum fields:
 
-{"source_metadata": ...,     "source_embeddings": ...,     "gold_metadata": ...,     "gold_embeddings": ... }
-
----
-
-## Running TANHA Alignment
-
-Run the complete TANHA alignment framework:
-
-bash python ablations/tanha_full.py 
-
-### Ablation Variants
-
-Without canonicalization:
-
-bash python ablations/tanha_no_canonicalization.py 
-
-Without lexical matching:
-
-bash python ablations/tanha_no_lexical.py 
-
-Without semantic matching:
-
-bash python ablations/tanha_no_semantic.py 
+```json
+{
+    "EN_Judgment": "...",
+    "SANITIZED_SUMMARY": "..."
+}
+```
 
 ---
 
-## Running Reinforcement Learning
+# Entity Cache
 
-Full TANHA reward:
+To avoid repeated NER extraction and sentence embedding computation during RL training, pre-computed entity caches are used.
 
-bash python rl/train_rl_full.py 
+Each cache contains
 
-No canonicalization:
+```
+source_metadata
+source_embeddings
+```
 
-bash python rl/train_rl_no_canonicalization.py 
-
-No lexical matching:
-
-bash python rl/train_rl_no_lexical.py 
-
-No semantic matching:
-
-bash python rl/train_rl_no_semantic.py 
+The RL implementation only requires source-side entity information.
 
 ---
 
-## Annotation and Human Evaluation Tools
+# Running the Experiments
 
-The repository includes browser-based interfaces used during dataset creation and evaluation.
+## Proposed Method
 
-### Named Entity Annotation
+Run the complete reinforcement learning framework
 
-ner_annotation.html 
-
-### Human Evaluation
-
-human_evaluation.html 
+```bash
+python rl_reward_full.py
+```
 
 ---
+
+## TANHA Ablation Experiments
+
+Full TANHA
+
+```bash
+python ablations/tanha_full.py
+```
+
+Without Canonicalization
+
+```bash
+python ablations/tanha_no_canonicalization.py
+```
+
+Without Lexical Matching
+
+```bash
+python ablations/tanha_no_lexical.py
+```
+
+Without Semantic Matching
+
+```bash
+python ablations/tanha_no_semantic.py
+```
+
+---
+
+# Annotation Tools
+
+## `ner_validator.html`
+
+Browser-based interface used for validating legal named entity annotations.
+
+---
+
+## `human_validation.html`
+
+Browser-based interface used for human evaluation of generated summaries.
+
+---
+
+# Notes
+
+- All experiments were implemented using GRPO.
+- Entity extraction is performed using a legal-domain NER model.
+- Semantic entity similarity is computed using Sentence-BERT embeddings.
+- TANHA alignments are used to compute the structural reward during reinforcement learning.
