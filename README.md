@@ -228,12 +228,3 @@ Browser-based interface used for validating legal named entity annotations.
 ## `human_validation.html`
 
 Browser-based interface used for human evaluation of generated summaries.
-
----
-
-# Notes
-
-- All experiments were implemented using GRPO.
-- Entity extraction is performed using a legal-domain NER model.
-- Semantic entity similarity is computed using Sentence-BERT embeddings.
-- TANHA alignments are used to compute the structural reward during reinforcement learning.
